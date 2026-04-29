@@ -1,0 +1,10 @@
+{
+  "name": "moriguchi-move-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo Static app - no build step required",
+    "dev": "node server.js",
+    "start": "node server.js"
+  }
+}

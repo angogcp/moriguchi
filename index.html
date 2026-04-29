@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1f6f64" />
+    <title>守口移住トラッカー</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="概要">
+        <div>
+          <p class="eyebrow">荒川区 → 守口市</p>
+          <h1>守口移住トラッカー</h1>
+          <p class="subtitle">引っ越し予定日: <strong>2026年5月31日</strong></p>
+        </div>
+        <div class="countdown" aria-live="polite">
+          <span id="daysLeft">--</span>
+          <small>日</small>
+        </div>
+      </section>
+
+      <section class="quick-panel" aria-label="すぐ確認すること">
+        <div class="metric">
+          <span id="todayCount">0</span>
+          <small>今すぐ</small>
+        </div>
+        <div class="metric">
+          <span id="weekCount">0</span>
+          <small>7日以内</small>
+        </div>
+        <div class="metric">
+          <span id="openCount">0</span>
+          <small>未完了</small>
+        </div>
+        <div class="metric">
+          <span id="moneyCount">0</span>
+          <small>お金</small>
+        </div>
+      </section>
+
+      <section class="status-strip" aria-label="現在の状況">
+        <div class="section-heading compact">
+          <h2>現在の状況</h2>
+        </div>
+        <div id="currentFacts" class="fact-grid"></div>
+      </section>
+
+      <section class="controls" aria-label="タスク操作">
+        <form id="taskForm" class="task-form">
+          <label>
+            <span>やること</span>
+            <input id="taskTitle" type="text" maxlength="80" placeholder="例: 引っ越し業者に見積もり依頼" required />
+          </label>
+          <label>
+            <span>期限</span>
+            <input id="taskDue" type="date" required />
+          </label>
+          <label>
+            <span>カテゴリ</span>
+            <select id="taskCategory"></select>
+          </label>
+          <label>
+            <span>優先度</span>
+            <select id="taskPriority">
+              <option value="high">高</option>
+              <option value="medium" selected>中</option>
+              <option value="low">低</option>
+            </select>
+          </label>
+          <label class="wide">
+            <span>メモ</span>
+            <textarea id="taskNote" rows="2" maxlength="240" placeholder="電話番号、URL、必要書類など"></textarea>
+          </label>
+          <button class="primary-action" type="submit">追加</button>
+        </form>
+
+        <div class="filter-row" role="toolbar" aria-label="表示切り替え">
+          <button type="button" class="filter active" data-filter="now">今すぐ</button>
+          <button type="button" class="filter" data-filter="open">未完了</button>
+          <button type="button" class="filter" data-filter="week">7日以内</button>
+          <button type="button" class="filter" data-filter="all">すべて</button>
+          <button type="button" class="filter" data-filter="done">完了</button>
+          <button id="exportTasks" type="button" class="filter utility">書き出し</button>
+          <label class="import-label">
+            読み込み
+            <input id="importTasks" type="file" accept="application/json" />
+          </label>
+        </div>
+      </section>
+
+      <section class="board" aria-label="タスク一覧">
+        <div class="section-heading">
+          <h2 id="viewTitle">今すぐやること</h2>
+          <select id="categoryFilter" aria-label="カテゴリで絞り込み"></select>
+        </div>
+        <div id="taskList" class="task-list"></div>
+      </section>
+
+      <section class="board secondary" aria-label="カテゴリ進捗">
+        <div class="section-heading">
+          <h2>カテゴリ進捗</h2>
+          <button id="resetSeed" type="button" class="ghost-action">初期タスクを戻す</button>
+        </div>
+        <div id="categoryGrid" class="category-grid"></div>
+      </section>
+    </main>
+
+    <template id="taskTemplate">
+      <article class="task-card">
+        <label class="checkline">
+          <input class="task-check" type="checkbox" />
+          <span class="fake-check" aria-hidden="true"></span>
+        </label>
+        <div class="task-body">
+          <div class="task-main">
+            <h3></h3>
+            <span class="pill"></span>
+          </div>
+          <p class="task-meta"></p>
+          <p class="task-note"></p>
+        </div>
+        <button class="delete-task" type="button" title="削除" aria-label="タスクを削除">×</button>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
