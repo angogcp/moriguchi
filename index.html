@@ -21,8 +21,30 @@
         </div>
       </section>
 
+      <section class="daily-focus" aria-label="今日の一手">
+        <div class="focus-copy">
+          <p class="eyebrow">まずこれだけ</p>
+          <h2 id="focusTitle">読み込み中</h2>
+          <p id="focusMeta" class="focus-meta"></p>
+          <div id="focusProgress" class="focus-progress" aria-label="今日の足あと">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="focus-actions">
+          <div class="daily-score">
+            <span id="dailyWins">0</span>
+            <small>今日の完了</small>
+          </div>
+          <button id="completeFocus" class="primary-action" type="button">できた</button>
+          <button id="shuffleFocus" class="ghost-action" type="button">別の一手</button>
+        </div>
+        <p id="focusToast" class="focus-toast" aria-live="polite"></p>
+      </section>
+
       <section class="quick-panel" aria-label="すぐ確認すること">
-        <div class="metric">
+        <div class="metric hot">
           <span id="todayCount">0</span>
           <small>今すぐ</small>
         </div>
@@ -38,23 +60,6 @@
           <span id="moneyCount">0</span>
           <small>お金</small>
         </div>
-      </section>
-
-      <section class="daily-focus" aria-label="今日の一手">
-        <div class="focus-copy">
-          <p class="eyebrow">今日の一手</p>
-          <h2 id="focusTitle">読み込み中</h2>
-          <p id="focusMeta" class="focus-meta"></p>
-        </div>
-        <div class="focus-actions">
-          <div class="daily-score">
-            <span id="dailyWins">0</span>
-            <small>今日の完了</small>
-          </div>
-          <button id="completeFocus" class="primary-action" type="button">完了にする</button>
-          <button id="shuffleFocus" class="ghost-action" type="button">別の一手</button>
-        </div>
-        <p id="focusToast" class="focus-toast" aria-live="polite"></p>
       </section>
 
       <section class="status-strip" aria-label="現在の状況">

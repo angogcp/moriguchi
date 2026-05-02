@@ -146,6 +146,7 @@ const els =
         moneyCount: document.querySelector("#moneyCount"),
         focusTitle: document.querySelector("#focusTitle"),
         focusMeta: document.querySelector("#focusMeta"),
+        focusProgress: document.querySelector("#focusProgress"),
         dailyWins: document.querySelector("#dailyWins"),
         completeFocus: document.querySelector("#completeFocus"),
         shuffleFocus: document.querySelector("#shuffleFocus"),
@@ -335,7 +336,11 @@ function renderStats() {
 
 function renderFocus() {
   const focusTask = pickFocusTask(tasks, focusTaskId);
-  els.dailyWins.textContent = String(loadDailyWins());
+  const dailyWins = loadDailyWins();
+  els.dailyWins.textContent = String(dailyWins);
+  els.focusProgress.querySelectorAll("span").forEach((dot, index) => {
+    dot.classList.toggle("filled", index < Math.min(dailyWins, 3));
+  });
 
   if (!focusTask) {
     els.focusTitle.textContent = "今日は全部片づいています";
@@ -400,7 +405,7 @@ function renderTasks() {
       );
       if (!wasDone && check.checked) {
         const count = addDailyWin();
-        showFocusToast(count >= 3 ? "いいペースです。今日はもう十分進んでいます。" : "完了しました。小さく前進です。");
+        showFocusToast(count >= 3 ? "いいペースです。今日はここまででも十分です。" : "できました。小さく前進です。");
       }
       saveTasks();
       render();
@@ -459,7 +464,7 @@ function updateTaskStatus(taskId, status) {
   tasks = tasks.map((task) => (task.id === taskId ? normalizeTask({ ...task, status, done: status === "done" }) : task));
   if (before && !isDone(before) && status === "done") {
     const count = addDailyWin();
-    showFocusToast(count >= 3 ? "いいペースです。今日はもう十分進んでいます。" : "完了しました。次の一手が軽くなりました。");
+    showFocusToast(count >= 3 ? "いいペースです。今日はここまででも十分です。" : "できました。次の一手が軽くなりました。");
   }
   saveTasks();
   render();
