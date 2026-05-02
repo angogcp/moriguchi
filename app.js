@@ -1,5 +1,7 @@
 const MOVE_DATE = "2026-05-31";
 const STORAGE_KEY = "moriguchi-move-tasks-v1";
+const DAILY_KEY = "moriguchi-daily-wins-v1";
+const FOCUS_KEY = "moriguchi-focus-task-v1";
 
 export const kanbanColumns = [
   { id: "now", title: "今すぐ", color: "#b4324a" },
@@ -142,6 +144,12 @@ const els =
         weekCount: document.querySelector("#weekCount"),
         openCount: document.querySelector("#openCount"),
         moneyCount: document.querySelector("#moneyCount"),
+        focusTitle: document.querySelector("#focusTitle"),
+        focusMeta: document.querySelector("#focusMeta"),
+        dailyWins: document.querySelector("#dailyWins"),
+        completeFocus: document.querySelector("#completeFocus"),
+        shuffleFocus: document.querySelector("#shuffleFocus"),
+        focusToast: document.querySelector("#focusToast"),
         taskForm: document.querySelector("#taskForm"),
         taskTitle: document.querySelector("#taskTitle"),
         taskDue: document.querySelector("#taskDue"),
@@ -167,6 +175,7 @@ let tasks = typeof document === "undefined" ? normalizeTasks(seedTasks) : normal
 let activeFilter = "now";
 let activeCategory = "all";
 let activeView = "list";
+let focusTaskId = typeof document === "undefined" ? null : localStorage.getItem(FOCUS_KEY);
 
 if (typeof document !== "undefined") {
   mergeSeedTasks();
@@ -200,6 +209,29 @@ function loadTasks() {
 
 function saveTasks() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadDailyWins() {
+  try {
+    const value = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}");
+    return value.date === todayKey() ? Number(value.count || 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveDailyWins(count) {
+  localStorage.setItem(DAILY_KEY, JSON.stringify({ date: todayKey(), count }));
+}
+
+function addDailyWin() {
+  const count = loadDailyWins() + 1;
+  saveDailyWins(count);
+  return count;
 }
 
 export function normalizeTask(task) {
@@ -240,6 +272,23 @@ function isNow(task) {
 
 function isDone(task) {
   return task.done || task.status === "done";
+}
+
+export function pickFocusTask(items, currentId) {
+  const openTasks = items.filter((task) => !isDone(task));
+  if (openTasks.length === 0) return null;
+
+  const current = openTasks.find((task) => task.id === currentId);
+  if (current) return current;
+
+  return [...openTasks].sort((a, b) => {
+    const statusScore = { now: 0, doing: 1, next: 2, waiting: 3 };
+    const statusDiff = (statusScore[a.status] ?? 2) - (statusScore[b.status] ?? 2);
+    if (statusDiff !== 0) return statusDiff;
+    const dateDiff = parseDate(a.due) - parseDate(b.due);
+    if (dateDiff !== 0) return dateDiff;
+    return ["high", "medium", "low"].indexOf(a.priority) - ["high", "medium", "low"].indexOf(b.priority);
+  })[0];
 }
 
 function filteredTasks() {
@@ -284,6 +333,26 @@ function renderStats() {
   els.moneyCount.textContent = tasks.filter((task) => !isDone(task) && task.category === "お金・家計").length;
 }
 
+function renderFocus() {
+  const focusTask = pickFocusTask(tasks, focusTaskId);
+  els.dailyWins.textContent = String(loadDailyWins());
+
+  if (!focusTask) {
+    els.focusTitle.textContent = "今日は全部片づいています";
+    els.focusMeta.textContent = "少し休んで、次に増やすタスクだけ追加しましょう。";
+    els.completeFocus.disabled = true;
+    els.shuffleFocus.disabled = true;
+    return;
+  }
+
+  focusTaskId = focusTask.id;
+  localStorage.setItem(FOCUS_KEY, focusTaskId);
+  els.focusTitle.textContent = focusTask.title;
+  els.focusMeta.textContent = `${focusTask.category} / ${statusLabel(focusTask.status)} / ${urgencyText(focusTask)} / 優先度 ${priorityLabel(focusTask.priority)}`;
+  els.completeFocus.disabled = false;
+  els.shuffleFocus.disabled = false;
+}
+
 function renderFacts() {
   els.currentFacts.innerHTML = "";
   currentFacts.forEach(([title, body]) => {
@@ -325,9 +394,14 @@ function renderTasks() {
     const check = node.querySelector(".task-check");
     check.checked = isDone(task);
     check.addEventListener("change", () => {
+      const wasDone = isDone(task);
       tasks = tasks.map((item) =>
         item.id === task.id ? normalizeTask({ ...item, done: check.checked, status: check.checked ? "done" : "now" }) : item
       );
+      if (!wasDone && check.checked) {
+        const count = addDailyWin();
+        showFocusToast(count >= 3 ? "いいペースです。今日はもう十分進んでいます。" : "完了しました。小さく前進です。");
+      }
       saveTasks();
       render();
     });
@@ -381,9 +455,20 @@ export function getKanbanSummary(items) {
 }
 
 function updateTaskStatus(taskId, status) {
+  const before = tasks.find((task) => task.id === taskId);
   tasks = tasks.map((task) => (task.id === taskId ? normalizeTask({ ...task, status, done: status === "done" }) : task));
+  if (before && !isDone(before) && status === "done") {
+    const count = addDailyWin();
+    showFocusToast(count >= 3 ? "いいペースです。今日はもう十分進んでいます。" : "完了しました。次の一手が軽くなりました。");
+  }
   saveTasks();
   render();
+}
+
+function showFocusToast(message) {
+  els.focusToast.textContent = message;
+  els.focusToast.classList.add("show");
+  window.setTimeout(() => els.focusToast.classList.remove("show"), 2600);
 }
 
 function renderKanban() {
@@ -424,6 +509,7 @@ function renderKanban() {
 
 function render() {
   renderStats();
+  renderFocus();
   renderFacts();
   renderTasks();
   renderKanban();
@@ -460,6 +546,21 @@ function addTask(event) {
 
 function bindEvents() {
   els.taskForm.addEventListener("submit", addTask);
+  els.completeFocus.addEventListener("click", () => {
+    const focusTask = pickFocusTask(tasks, focusTaskId);
+    if (!focusTask) return;
+    updateTaskStatus(focusTask.id, "done");
+  });
+
+  els.shuffleFocus.addEventListener("click", () => {
+    const openTasks = tasks.filter((task) => !isDone(task) && task.id !== focusTaskId);
+    if (openTasks.length === 0) return;
+    focusTaskId = openTasks[Math.floor(Math.random() * openTasks.length)].id;
+    localStorage.setItem(FOCUS_KEY, focusTaskId);
+    renderFocus();
+    showFocusToast("今日の一手を切り替えました。");
+  });
+
   els.toggleFacts.addEventListener("click", () => {
     const isOpen = els.currentFacts.classList.toggle("open");
     els.toggleFacts.setAttribute("aria-expanded", String(isOpen));

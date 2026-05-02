@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { getKanbanSummary, kanbanColumns, normalizeTask } from './app.js';
+import { getKanbanSummary, kanbanColumns, normalizeTask, pickFocusTask } from './app.js';
 
 assert.deepEqual(
   kanbanColumns.map((column) => column.id),
@@ -22,5 +22,6 @@ assert.equal(completed.done, true);
 const summary = getKanbanSummary([active, completed]);
 assert.equal(summary.find((column) => column.id === 'now').count, 1);
 assert.equal(summary.find((column) => column.id === 'done').count, 1);
+assert.equal(pickFocusTask([active, completed], null).id, active.id);
 
 console.log('Moriguchi tracker Kanban tests passed');
