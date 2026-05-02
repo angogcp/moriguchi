@@ -153,6 +153,8 @@ const els =
         taskTemplate: document.querySelector("#taskTemplate"),
         viewTitle: document.querySelector("#viewTitle"),
         currentFacts: document.querySelector("#currentFacts"),
+        toggleFacts: document.querySelector("#toggleFacts"),
+        toggleTaskForm: document.querySelector("#toggleTaskForm"),
         kanbanBoard: document.querySelector("#kanbanBoard"),
         categoryFilter: document.querySelector("#categoryFilter"),
         categoryGrid: document.querySelector("#categoryGrid"),
@@ -164,6 +166,7 @@ const els =
 let tasks = typeof document === "undefined" ? normalizeTasks(seedTasks) : normalizeTasks(loadTasks());
 let activeFilter = "now";
 let activeCategory = "all";
+let activeView = "list";
 
 if (typeof document !== "undefined") {
   mergeSeedTasks();
@@ -457,10 +460,34 @@ function addTask(event) {
 
 function bindEvents() {
   els.taskForm.addEventListener("submit", addTask);
+  els.toggleFacts.addEventListener("click", () => {
+    const isOpen = els.currentFacts.classList.toggle("open");
+    els.toggleFacts.setAttribute("aria-expanded", String(isOpen));
+  });
+
+  els.toggleTaskForm.addEventListener("click", () => {
+    const isOpen = els.taskForm.classList.toggle("open");
+    els.toggleTaskForm.setAttribute("aria-expanded", String(isOpen));
+  });
+
+  document.querySelectorAll(".view-tab").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeView = button.dataset.view;
+      document.querySelectorAll(".view-tab").forEach((item) => item.classList.toggle("active", item === button));
+      document.querySelectorAll(".view-panel").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.panel === activeView);
+      });
+    });
+  });
+
   document.querySelectorAll(".filter").forEach((button) => {
     button.addEventListener("click", () => {
+      if (!button.dataset.filter) return;
       activeFilter = button.dataset.filter;
-      document.querySelectorAll(".filter").forEach((item) => item.classList.toggle("active", item === button));
+      document.querySelectorAll(".filter[data-filter]").forEach((item) => item.classList.toggle("active", item === button));
+      document.querySelectorAll(".view-tab").forEach((item) => item.classList.toggle("active", item.dataset.view === "list"));
+      document.querySelectorAll(".view-panel").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === "list"));
+      activeView = "list";
       render();
     });
   });

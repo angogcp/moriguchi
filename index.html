@@ -13,7 +13,7 @@
         <div>
           <p class="eyebrow">荒川区 → 守口市</p>
           <h1>守口移住トラッカー</h1>
-          <p class="subtitle">引っ越し予定日: <strong>2026年5月31日</strong></p>
+          <p class="subtitle">引っ越し予定日: <strong>2026年5月31日</strong>。今日やることに集中します。</p>
         </div>
         <div class="countdown" aria-live="polite">
           <span id="daysLeft">--</span>
@@ -41,13 +41,12 @@
       </section>
 
       <section class="status-strip" aria-label="現在の状況">
-        <div class="section-heading compact">
-          <h2>現在の状況</h2>
-        </div>
+        <button id="toggleFacts" class="section-toggle" type="button" aria-expanded="false">現在の状況</button>
         <div id="currentFacts" class="fact-grid"></div>
       </section>
 
       <section class="controls" aria-label="タスク操作">
+        <button id="toggleTaskForm" class="section-toggle" type="button" aria-expanded="false">タスクを追加</button>
         <form id="taskForm" class="task-form">
           <label>
             <span>やること</span>
@@ -80,6 +79,12 @@
           <button class="primary-action" type="submit">追加</button>
         </form>
 
+        <div class="view-tabs" role="tablist" aria-label="メイン表示">
+          <button type="button" class="view-tab active" data-view="list">リスト</button>
+          <button type="button" class="view-tab" data-view="kanban">Kanban</button>
+          <button type="button" class="view-tab" data-view="progress">進捗</button>
+        </div>
+
         <div class="filter-row" role="toolbar" aria-label="表示切り替え">
           <button type="button" class="filter active" data-filter="now">今すぐ</button>
           <button type="button" class="filter" data-filter="open">未完了</button>
@@ -94,7 +99,7 @@
         </div>
       </section>
 
-      <section class="board" aria-label="タスク一覧">
+      <section class="board view-panel active" data-panel="list" aria-label="タスク一覧">
         <div class="section-heading">
           <h2 id="viewTitle">今すぐやること</h2>
           <select id="categoryFilter" aria-label="カテゴリで絞り込み"></select>
@@ -102,15 +107,15 @@
         <div id="taskList" class="task-list"></div>
       </section>
 
-      <section class="board kanban-section" aria-label="Kanban dashboard">
+      <section class="board kanban-section view-panel" data-panel="kanban" aria-label="Kanban dashboard">
         <div class="section-heading">
           <h2>Kanban</h2>
-          <p class="section-note">同じタスクを、今すぐ・進行中・待ち・次・完了で整理します。</p>
+          <p class="section-note">タスクの状態だけを横で見ます。</p>
         </div>
         <div id="kanbanBoard" class="kanban-board"></div>
       </section>
 
-      <section class="board secondary" aria-label="カテゴリ進捗">
+      <section class="board secondary view-panel" data-panel="progress" aria-label="カテゴリ進捗">
         <div class="section-heading">
           <h2>カテゴリ進捗</h2>
           <button id="resetSeed" type="button" class="ghost-action">初期タスクを戻す</button>
