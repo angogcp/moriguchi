@@ -1,6 +1,14 @@
 const MOVE_DATE = "2026-05-31";
 const STORAGE_KEY = "moriguchi-move-tasks-v1";
 
+export const kanbanColumns = [
+  { id: "now", title: "今すぐ", color: "#b4324a" },
+  { id: "doing", title: "進行中", color: "#a55f00" },
+  { id: "waiting", title: "待ち", color: "#3a6ea5" },
+  { id: "next", title: "次", color: "#1f6f64" },
+  { id: "done", title: "完了", color: "#68736f" }
+];
+
 const categories = [
   "調査",
   "住居・契約",
@@ -120,38 +128,46 @@ const seedTasks = [
   due,
   priority,
   note,
+  status: priority === "high" ? "now" : "next",
   done: false,
   createdAt: new Date().toISOString()
 }));
 
-const els = {
-  daysLeft: document.querySelector("#daysLeft"),
-  todayCount: document.querySelector("#todayCount"),
-  weekCount: document.querySelector("#weekCount"),
-  openCount: document.querySelector("#openCount"),
-  moneyCount: document.querySelector("#moneyCount"),
-  taskForm: document.querySelector("#taskForm"),
-  taskTitle: document.querySelector("#taskTitle"),
-  taskDue: document.querySelector("#taskDue"),
-  taskCategory: document.querySelector("#taskCategory"),
-  taskPriority: document.querySelector("#taskPriority"),
-  taskNote: document.querySelector("#taskNote"),
-  taskList: document.querySelector("#taskList"),
-  taskTemplate: document.querySelector("#taskTemplate"),
-  viewTitle: document.querySelector("#viewTitle"),
-  currentFacts: document.querySelector("#currentFacts"),
-  categoryFilter: document.querySelector("#categoryFilter"),
-  categoryGrid: document.querySelector("#categoryGrid"),
-  resetSeed: document.querySelector("#resetSeed"),
-  exportTasks: document.querySelector("#exportTasks"),
-  importTasks: document.querySelector("#importTasks")
-};
+const els =
+  typeof document === "undefined"
+    ? {}
+    : {
+        daysLeft: document.querySelector("#daysLeft"),
+        todayCount: document.querySelector("#todayCount"),
+        weekCount: document.querySelector("#weekCount"),
+        openCount: document.querySelector("#openCount"),
+        moneyCount: document.querySelector("#moneyCount"),
+        taskForm: document.querySelector("#taskForm"),
+        taskTitle: document.querySelector("#taskTitle"),
+        taskDue: document.querySelector("#taskDue"),
+        taskCategory: document.querySelector("#taskCategory"),
+        taskPriority: document.querySelector("#taskPriority"),
+        taskStatus: document.querySelector("#taskStatus"),
+        taskNote: document.querySelector("#taskNote"),
+        taskList: document.querySelector("#taskList"),
+        taskTemplate: document.querySelector("#taskTemplate"),
+        viewTitle: document.querySelector("#viewTitle"),
+        currentFacts: document.querySelector("#currentFacts"),
+        kanbanBoard: document.querySelector("#kanbanBoard"),
+        categoryFilter: document.querySelector("#categoryFilter"),
+        categoryGrid: document.querySelector("#categoryGrid"),
+        resetSeed: document.querySelector("#resetSeed"),
+        exportTasks: document.querySelector("#exportTasks"),
+        importTasks: document.querySelector("#importTasks")
+      };
 
-let tasks = loadTasks();
+let tasks = typeof document === "undefined" ? normalizeTasks(seedTasks) : normalizeTasks(loadTasks());
 let activeFilter = "now";
 let activeCategory = "all";
 
-mergeSeedTasks();
+if (typeof document !== "undefined") {
+  mergeSeedTasks();
+}
 
 function todayStart() {
   const now = new Date();
@@ -183,12 +199,22 @@ function saveTasks() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 }
 
+export function normalizeTask(task) {
+  const done = Boolean(task.done || task.status === "done");
+  const status = done ? "done" : task.status || (task.priority === "high" ? "now" : "next");
+  return { ...task, status, done };
+}
+
+function normalizeTasks(items) {
+  return items.map(normalizeTask);
+}
+
 function mergeSeedTasks() {
   const existingTitles = new Set(tasks.map((task) => task.title));
   const missingSeeds = seedTasks.filter((task) => !existingTitles.has(task.title));
   if (missingSeeds.length === 0) return;
 
-  tasks = [...tasks, ...missingSeeds];
+  tasks = normalizeTasks([...tasks, ...missingSeeds]);
   saveTasks();
 }
 
@@ -206,7 +232,11 @@ function urgencyText(task) {
 
 function isNow(task) {
   const days = daysUntil(task.due);
-  return !task.done && (task.priority === "high" || days <= 3);
+  return !task.done && task.status !== "done" && (task.status === "now" || task.priority === "high" || days <= 3);
+}
+
+function isDone(task) {
+  return task.done || task.status === "done";
 }
 
 function filteredTasks() {
@@ -216,15 +246,15 @@ function filteredTasks() {
       const filterMatch =
         activeFilter === "all" ||
         (activeFilter === "now" && isNow(task)) ||
-        (activeFilter === "open" && !task.done) ||
-        (activeFilter === "week" && !task.done && days <= 7) ||
-        (activeFilter === "done" && task.done);
+        (activeFilter === "open" && !isDone(task)) ||
+        (activeFilter === "week" && !isDone(task) && days <= 7) ||
+        (activeFilter === "done" && isDone(task));
 
       const categoryMatch = activeCategory === "all" || task.category === activeCategory;
       return filterMatch && categoryMatch;
     })
     .sort((a, b) => {
-      if (a.done !== b.done) return Number(a.done) - Number(b.done);
+      if (isDone(a) !== isDone(b)) return Number(isDone(a)) - Number(isDone(b));
       const dateDiff = parseDate(a.due) - parseDate(b.due);
       if (dateDiff !== 0) return dateDiff;
       return ["high", "medium", "low"].indexOf(a.priority) - ["high", "medium", "low"].indexOf(b.priority);
@@ -233,6 +263,10 @@ function filteredTasks() {
 
 function renderSelects() {
   els.taskCategory.innerHTML = categories.map((category) => `<option value="${category}">${category}</option>`).join("");
+  els.taskStatus.innerHTML = kanbanColumns
+    .filter((column) => column.id !== "done")
+    .map((column) => `<option value="${column.id}">${column.title}</option>`)
+    .join("");
   els.categoryFilter.innerHTML = `<option value="all">すべてのカテゴリ</option>${categories
     .map((category) => `<option value="${category}">${category}</option>`)
     .join("")}`;
@@ -242,9 +276,9 @@ function renderStats() {
   const moveDays = daysUntil(MOVE_DATE);
   els.daysLeft.textContent = String(Math.max(moveDays, 0));
   els.todayCount.textContent = tasks.filter(isNow).length;
-  els.weekCount.textContent = tasks.filter((task) => !task.done && daysUntil(task.due) <= 7).length;
-  els.openCount.textContent = tasks.filter((task) => !task.done).length;
-  els.moneyCount.textContent = tasks.filter((task) => !task.done && task.category === "お金・家計").length;
+  els.weekCount.textContent = tasks.filter((task) => !isDone(task) && daysUntil(task.due) <= 7).length;
+  els.openCount.textContent = tasks.filter((task) => !isDone(task)).length;
+  els.moneyCount.textContent = tasks.filter((task) => !isDone(task) && task.category === "お金・家計").length;
 }
 
 function renderFacts() {
@@ -276,9 +310,9 @@ function renderTasks() {
 
   visibleTasks.forEach((task) => {
     const node = els.taskTemplate.content.firstElementChild.cloneNode(true);
-    node.classList.toggle("done", task.done);
+    node.classList.toggle("done", isDone(task));
     node.querySelector("h3").textContent = task.title;
-    node.querySelector(".task-meta").textContent = `${task.category} / 期限 ${task.due} / ${urgencyText(task)}`;
+    node.querySelector(".task-meta").textContent = `${task.category} / ${statusLabel(task.status)} / 期限 ${task.due} / ${urgencyText(task)}`;
     node.querySelector(".task-note").textContent = task.note || "";
 
     const pill = node.querySelector(".pill");
@@ -286,12 +320,22 @@ function renderTasks() {
     pill.classList.add(task.priority);
 
     const check = node.querySelector(".task-check");
-    check.checked = task.done;
+    check.checked = isDone(task);
     check.addEventListener("change", () => {
-      tasks = tasks.map((item) => (item.id === task.id ? { ...item, done: check.checked } : item));
+      tasks = tasks.map((item) =>
+        item.id === task.id ? normalizeTask({ ...item, done: check.checked, status: check.checked ? "done" : "now" }) : item
+      );
       saveTasks();
       render();
     });
+
+    const statusSelect = document.createElement("select");
+    statusSelect.className = "status-select";
+    statusSelect.setAttribute("aria-label", "状態を変更");
+    statusSelect.innerHTML = kanbanColumns.map((column) => `<option value="${column.id}">${column.title}</option>`).join("");
+    statusSelect.value = task.status;
+    statusSelect.addEventListener("change", () => updateTaskStatus(task.id, statusSelect.value));
+    node.querySelector(".task-body").append(statusSelect);
 
     node.querySelector(".delete-task").addEventListener("click", () => {
       tasks = tasks.filter((item) => item.id !== task.id);
@@ -307,7 +351,7 @@ function renderCategories() {
   els.categoryGrid.innerHTML = "";
   categories.forEach((category) => {
     const categoryTasks = tasks.filter((task) => task.category === category);
-    const done = categoryTasks.filter((task) => task.done).length;
+    const done = categoryTasks.filter(isDone).length;
     const total = categoryTasks.length;
     const percent = total ? Math.round((done / total) * 100) : 0;
 
@@ -322,10 +366,64 @@ function renderCategories() {
   });
 }
 
+function statusLabel(status) {
+  return kanbanColumns.find((column) => column.id === status)?.title || "次";
+}
+
+export function getKanbanSummary(items) {
+  return kanbanColumns.map((column) => ({
+    ...column,
+    count: items.filter((task) => task.status === column.id).length
+  }));
+}
+
+function updateTaskStatus(taskId, status) {
+  tasks = tasks.map((task) => (task.id === taskId ? normalizeTask({ ...task, status, done: status === "done" }) : task));
+  saveTasks();
+  render();
+}
+
+function renderKanban() {
+  els.kanbanBoard.innerHTML = "";
+
+  kanbanColumns.forEach((column) => {
+    const columnTasks = tasks
+      .filter((task) => task.status === column.id)
+      .sort((a, b) => parseDate(a.due) - parseDate(b.due));
+    const section = document.createElement("section");
+    section.className = "kanban-column";
+    section.dataset.status = column.id;
+    section.style.setProperty("--status-color", column.color);
+    section.innerHTML = `
+      <header>
+        <h3>${column.title}</h3>
+        <span class="kanban-count">${columnTasks.length}</span>
+      </header>
+      <div class="kanban-lane" data-drop-status="${column.id}"></div>
+    `;
+
+    const lane = section.querySelector(".kanban-lane");
+    columnTasks.forEach((task) => {
+      const card = document.createElement("article");
+      card.className = "kanban-card";
+      card.draggable = true;
+      card.dataset.taskId = task.id;
+      card.innerHTML = `
+        <strong>${task.title}</strong>
+        <p>${task.category} / ${task.due} / 優先度 ${priorityLabel(task.priority)}</p>
+      `;
+      lane.append(card);
+    });
+
+    els.kanbanBoard.append(section);
+  });
+}
+
 function render() {
   renderStats();
   renderFacts();
   renderTasks();
+  renderKanban();
   renderCategories();
 }
 
@@ -341,8 +439,9 @@ function addTask(event) {
       due: els.taskDue.value,
       category: els.taskCategory.value,
       priority: els.taskPriority.value,
+      status: els.taskStatus.value,
       note: els.taskNote.value.trim(),
-      done: false,
+      done: els.taskStatus.value === "done",
       createdAt: new Date().toISOString()
     },
     ...tasks
@@ -352,6 +451,7 @@ function addTask(event) {
   els.taskForm.reset();
   els.taskDue.value = new Date().toISOString().slice(0, 10);
   els.taskPriority.value = "medium";
+  els.taskStatus.value = "now";
   render();
 }
 
@@ -370,9 +470,35 @@ function bindEvents() {
     renderTasks();
   });
 
+  els.kanbanBoard.addEventListener("dragstart", (event) => {
+    const card = event.target.closest("[data-task-id]");
+    if (!card) return;
+    event.dataTransfer.setData("text/plain", card.dataset.taskId);
+  });
+
+  els.kanbanBoard.addEventListener("dragover", (event) => {
+    const column = event.target.closest(".kanban-column");
+    if (!column) return;
+    event.preventDefault();
+    column.classList.add("over");
+  });
+
+  els.kanbanBoard.addEventListener("dragleave", (event) => {
+    const column = event.target.closest(".kanban-column");
+    if (column) column.classList.remove("over");
+  });
+
+  els.kanbanBoard.addEventListener("drop", (event) => {
+    const column = event.target.closest(".kanban-column");
+    if (!column) return;
+    event.preventDefault();
+    column.classList.remove("over");
+    updateTaskStatus(event.dataTransfer.getData("text/plain"), column.dataset.status);
+  });
+
   els.resetSeed.addEventListener("click", () => {
     const existingCustom = tasks.filter((task) => !String(task.id).startsWith("seed-"));
-    tasks = [...seedTasks, ...existingCustom];
+    tasks = normalizeTasks([...seedTasks, ...existingCustom]);
     saveTasks();
     render();
   });
@@ -394,7 +520,7 @@ function bindEvents() {
     try {
       const imported = JSON.parse(await file.text());
       if (!Array.isArray(imported)) throw new Error("Invalid task file");
-      tasks = imported.filter((task) => task.title && task.due && task.category);
+      tasks = normalizeTasks(imported.filter((task) => task.title && task.due && task.category));
       saveTasks();
       render();
     } catch {
@@ -405,7 +531,10 @@ function bindEvents() {
   });
 }
 
-renderSelects();
-els.taskDue.value = new Date().toISOString().slice(0, 10);
-bindEvents();
-render();
+if (typeof document !== "undefined") {
+  renderSelects();
+  els.taskDue.value = new Date().toISOString().slice(0, 10);
+  els.taskStatus.value = "now";
+  bindEvents();
+  render();
+}

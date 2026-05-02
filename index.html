@@ -1,102 +1,53 @@
 <!doctype html>
-<html lang="ja" class="moriguchi-dashboard-v2">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f6f2ea" />
-    <meta
-      name="description"
-      content="荒川区から守口市への移住準備を、期限・優先度・カテゴリで整理する relocation command center。"
-    />
+    <meta name="theme-color" content="#1f6f64" />
     <title>守口移住トラッカー</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="ambient ambient-one" aria-hidden="true"></div>
-    <div class="ambient ambient-two" aria-hidden="true"></div>
-
     <main class="app-shell">
-      <section class="topbar hero-grid" aria-label="概要">
-        <div class="hero-copy">
-          <p class="eyebrow">Arakawa → Moriguchi relocation command center</p>
+      <section class="topbar" aria-label="概要">
+        <div>
+          <p class="eyebrow">荒川区 → 守口市</p>
           <h1>守口移住トラッカー</h1>
-          <p class="subtitle">
-            東京から大阪へ移るまでの段取りを、今日やることから到着後の生活立ち上げまで一枚で管理します。
-          </p>
-          <div class="hero-actions" aria-label="主要アクション">
-            <a class="ghost-link" href="#taskTitle">新しいタスクを追加</a>
-            <a class="ghost-link" href="#categoryGrid">カテゴリ進捗を見る</a>
-          </div>
+          <p class="subtitle">引っ越し予定日: <strong>2026年5月31日</strong></p>
         </div>
-
-        <aside class="countdown-card" aria-label="引っ越し予定日">
-          <span class="countdown-label">引っ越し予定日</span>
-          <strong>2026年5月31日</strong>
-          <div class="countdown" aria-live="polite">
-            <span id="daysLeft">--</span>
-            <small>days left</small>
-          </div>
-        </aside>
-
-        <div class="timeline-rail" aria-label="移住フェーズ">
-          <div>
-            <span>01</span>
-            <strong>審査・契約</strong>
-            <small>初期費用と鍵受け取り</small>
-          </div>
-          <div>
-            <span>02</span>
-            <strong>退職・荷造り</strong>
-            <small>書類と生活費を確保</small>
-          </div>
-          <div>
-            <span>03</span>
-            <strong>守口で再起動</strong>
-            <small>役所・仕事・通院</small>
-          </div>
+        <div class="countdown" aria-live="polite">
+          <span id="daysLeft">--</span>
+          <small>日</small>
         </div>
       </section>
 
       <section class="quick-panel" aria-label="すぐ確認すること">
-        <article class="metric urgent">
+        <div class="metric">
           <span id="todayCount">0</span>
           <small>今すぐ</small>
-        </article>
-        <article class="metric">
+        </div>
+        <div class="metric">
           <span id="weekCount">0</span>
           <small>7日以内</small>
-        </article>
-        <article class="metric">
+        </div>
+        <div class="metric">
           <span id="openCount">0</span>
           <small>未完了</small>
-        </article>
-        <article class="metric money">
+        </div>
+        <div class="metric">
           <span id="moneyCount">0</span>
           <small>お金</small>
-        </article>
+        </div>
       </section>
 
       <section class="status-strip" aria-label="現在の状況">
         <div class="section-heading compact">
-          <div>
-            <p class="section-kicker">Current facts</p>
-            <h2>現在の状況</h2>
-          </div>
+          <h2>現在の状況</h2>
         </div>
         <div id="currentFacts" class="fact-grid"></div>
       </section>
 
-      <section class="controls command-card" aria-label="タスク操作">
-        <div class="section-heading compact">
-          <div>
-            <p class="section-kicker">Capture</p>
-            <h2>新しいやること</h2>
-          </div>
-        </div>
-
+      <section class="controls" aria-label="タスク操作">
         <form id="taskForm" class="task-form">
           <label>
             <span>やること</span>
@@ -117,6 +68,10 @@
               <option value="medium" selected>中</option>
               <option value="low">低</option>
             </select>
+          </label>
+          <label>
+            <span>状態</span>
+            <select id="taskStatus"></select>
           </label>
           <label class="wide">
             <span>メモ</span>
@@ -139,23 +94,25 @@
         </div>
       </section>
 
-      <section class="board task-board" aria-label="タスク一覧">
+      <section class="board" aria-label="タスク一覧">
         <div class="section-heading">
-          <div>
-            <p class="section-kicker">Mission queue</p>
-            <h2 id="viewTitle">今すぐやること</h2>
-          </div>
+          <h2 id="viewTitle">今すぐやること</h2>
           <select id="categoryFilter" aria-label="カテゴリで絞り込み"></select>
         </div>
         <div id="taskList" class="task-list"></div>
       </section>
 
-      <section class="board secondary progress-board" aria-label="カテゴリ進捗">
+      <section class="board kanban-section" aria-label="Kanban dashboard">
         <div class="section-heading">
-          <div>
-            <p class="section-kicker">Progress map</p>
-            <h2>カテゴリ進捗</h2>
-          </div>
+          <h2>Kanban</h2>
+          <p class="section-note">同じタスクを、今すぐ・進行中・待ち・次・完了で整理します。</p>
+        </div>
+        <div id="kanbanBoard" class="kanban-board"></div>
+      </section>
+
+      <section class="board secondary" aria-label="カテゴリ進捗">
+        <div class="section-heading">
+          <h2>カテゴリ進捗</h2>
           <button id="resetSeed" type="button" class="ghost-action">初期タスクを戻す</button>
         </div>
         <div id="categoryGrid" class="category-grid"></div>
@@ -180,6 +137,6 @@
       </article>
     </template>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>
